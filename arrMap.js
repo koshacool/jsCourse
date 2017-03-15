@@ -27,6 +27,6 @@ var mapUsingRecursion = function (func, thisArg, arr) {
     	return arr; 
   	} else {
   		arr[arr.length] = func.call(thisArg, thisArg[arr.length], arr.length, thisArg);
-    	return map(func, thisArg, arr);
+    	return mapUsingRecursion(func, thisArg, arr);
   	} 	   
 };
