@@ -35,43 +35,65 @@ var allToJson = function(responses) {
 	return Promise.all(responses.map(toJson));
 };
 
-var getAlbums = R.pipe(
-	R.concat(SERVER_URL + ALBUMS + '?userId='), 
-	fetch
-);
+var getAlbums = async function (userId) {
+  	try {    	
+		return await (R.pipe(
+			R.concat(SERVER_URL + ALBUMS + '?userId='), 
+			fetch
+		))(userId);		
+  	} 
+  	catch (error) {
+    	console.log(error);
+  	}
+}
 
-var getPhotos = R.pipe(
-	R.prop('id'),
-	R.concat(SERVER_URL + PHOTOS + '?albumId='), 
-	fetch
-);
+var getPhotos = async function (album) {
+  	try {    	
+		return  await (R.pipe(
+			R.prop('id'),
+			R.concat(SERVER_URL + PHOTOS + '?albumId='), 
+			fetch
+		))(album);		
+  	} 
+  	catch (error) {
+    	console.log(error);
+  	}
+}
 
 var addPhotosToAlbum = R.set(R.lensProp('photos'));//Save photos in album
 
 var addPhotosToAlbums = R.zipWith(addPhotosToAlbum);//For all albums save photos
 
-var combineWithPhotos = function(albums) {
-  var photosRequests = albums.map(getPhotos);//Save all getted(getPhotos) promise to array
-  
-  return new Promise(function (resolve, reject) {
-	Promise.all(photosRequests)//Wait for get all photo
-	  .then(allToJson)
-	  .then(addPhotosToAlbums(R.__, albums))
-	  .then(resolve)
-	  .catch(reject);
-  });
+var combineWithPhotos = async function(albums) {
+ 	var photosRequests = albums.map(getPhotos);//Save all getted(getPhotos) promise to array   
+  	var all = Promise.all.bind(Promise);
+	
+	try {
+    	var photos = await all(photosRequests);
+		var jsonPhotos = await allToJson(photos);
+		var albumsWithPhotos = await addPhotosToAlbums(jsonPhotos, albums);
+		return albumsWithPhotos;		
+  	} 	
+  	catch (err) {
+    	console.log('ERROR: ', err);
+  	}
 };
 
-var loadAlbumsWithPhotos = function(event) {
+var loadAlbumsWithPhotos = async function(event) {
 	event.preventDefault();
 	
 	var dataContainer = document.getElementById('albums');
-	var userId = document.getElementById('userId').value;
-  
-	getAlbums(userId)
-		.then(toJson)
-		.then(combineWithPhotos)
-		.then(printAlbums(dataContainer));
+	var userId = document.getElementById('userId').value; 
+
+	try {
+    	var albums = await getAlbums(userId);
+		var jsonAlbums = await toJson(albums);
+		var albumsWithPhotos = await combineWithPhotos(jsonAlbums);
+		printAlbums(dataContainer, albumsWithPhotos); 
+  	} 	
+  	catch (err) {
+    	console.log('ERROR: ', err);
+  	}
 };
 
 window.onload = function() {
