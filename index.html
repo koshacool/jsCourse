@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title> promise </title>
+	<meta charset="utf-8">		
+</head>
+<body>
+<style type="text/css">
+   .formBlock { 
+    max-width: 400px;
+  	margin: 30px auto;
+   }
+
+   .albums {  
+   	max-width: 700px;  
+  	margin: 0 auto;
+   }
+   
+  </style> 
+	<div class="formBlock">
+		<form id="findAlbums">
+			Enter user id: 
+			<input 
+				id="userId" 
+				placeholder="Type user id" 
+				required 
+				type="text" 
+				pattern="\d+" 
+			>
+			<button id="loadPosts">Load albums</button>
+		</form>
+	</div>
+
+	<div id="albums" class="albums"></div>
+	<script src="./generateDOMElements2.js"></script>
+</body>
+</html>
