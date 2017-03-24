@@ -50,26 +50,21 @@ function p(name, attributes = null, children = null) {
 	var elem = document.createElement(name);//Create element
 
 	if (attributes) {//Sets attributes for this element
-		for (var key in attributes) {//If value is object - concatination it			
-			(attributes[key] instanceof Object) 
-			?	
-				elem[key] = concatStyle(attributes[key]) 
-			: 
+		for (var key in attributes) {						
+			(attributes[key] instanceof Object) ?	
+				elem[key] = concatStyle(attributes[key])//If value is object - concatination it
+				: 
 				elem[key] = attributes[key];
 		}
 	}
 
-	if (children) {//Add elements to this element
-		if (Array.isArray(children)) {
-			if (typeof children[0] === 'string') {
-					elem.textContent = children.shift();
-			}
-
-			children.forEach((item, i) => {
-				if (typeof item === 'string') {
-					return;
-				}
-				elem.appendChild(item);
+	if (children) { //Add child elements to this element
+		if (Array.isArray(children)) {	
+			children.forEach((item) => {
+				(typeof item === 'string') ?
+					elem.appendChild(document.createTextNode(item))
+					:
+					elem.appendChild(item);
 			});
 		} else {
 			elem.textContent = children;
