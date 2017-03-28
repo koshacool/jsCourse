@@ -127,77 +127,101 @@ class Collection {
         this._data = {} //this._getInitialData()
     }
 
-    // set _data(data) {
-    //   this._data = data
-    // }
-
     insert(data) {
-        if (this._validateData(data)) {
-            this._data[data.id] = data
+        const validData = this._validateData(data);
 
-            this._commit()
+        if (validData) {
+            this._data[data.id] = validData;
+            this._commit();//Save data in localStorage
         } else {
-            throw new Error({message: 'Bad data', data: data})
+            throw new Error({message: 'Bad data', data: data});
         }
     }
 
     find(value, key = 'id') {
         const element = this.findAll()
-            .find(item => item[key] === value)
+            .find(item => item[key] === value);
 
-        return element
+        return element;
     }
 
     findAll() {
         const elements = Object.keys(this._data)
-            .map(key => this._data[key])
-        return elements
+            .map(key => this._data[key]);
+        return elements;
     }
 
     _getInitialData() {
         try {
-            const initialData = store.get(this._name)
-            return JSON.parse(initialData)
+            const initialData = store.get(this._name);
+            return JSON.parse(initialData);
         } catch (e) {
-            console.log(e.message)
+            console.log(e.message);
         }
     }
 
     _validateData(data) {
-        const dataKeys = Object.keys(data)
+        const validation = {
+            ref: (dataKey, value, param) => {
+                console.log(dataKey + ':' + value + ':' + param);
+                const refKey = '_' + param;
+                data[refKey] = () => data[key].map(id => this._models[field.ref].find('id', id));
+                return true;
+            },
+            type: (dataKey, value, param) => {return (typeof value === param)},
+            defaultTo: (dataKey, value, param) => {
+                //console.log(dataKey + ':' + value + ':' + param);
+                if(!value) {
+                    data[dataKey] = this._fields[dataKey].defaultTo;
+                }
+                return true;
+            },
+            required: (dataKey, value, param) => {
+                if (param && !value) {
+                    return false;
+                }
+                return true;
+            },
+        };
 
-        const status = dataKeys.every(key => {
-            // debugger
-            const field = this._fields[key]
-            if (!field) {
-                return false
+        const dataKeys = Object.keys(data);
+
+        dataKeys.every((key) => {//if all data's fields don't exist in the model - show Error
+            if (!this._fields[key]) {
+                throw new Error('This field "' + key + '" is not available');
+            }
+        });
+
+        const validationKeys = Object.keys(this._fields);//Get fields name for validation
+        const status = validationKeys.every((key) => {
+            let objectParams = this._fields[key];//Validation params for each field
+
+            if(objectParams.defaultTo) { //If isset default value for this field - check it
+                (validation.defaultTo)(key, data[key], objectParams[param]);
             }
 
-            if (field.ref) {
-                const refKey = '_' + field.ref
-                data[refKey] = () => data[key].map(id => this._models[field.ref].find('id', id))
-                return true
+            if (!data[key]) {//If user don't give such field and don't exist default value - show Error
+                return false;
             }
 
-            if (!(typeof data[key] === field.type)) {
-                return false
+            for (var param in objectParams) {//Validate field
+                var result = (validation[param])(key, data[key] ,objectParams[param]);
+                if (!result) {
+                    return false;
+                }
             }
 
-            if (field.presence && !data[key]) {
-                return false
-            }
+            return true;
+        });
 
-            return true
-        })
-
-        return status
+        return status ? data : false;
     }
 
     _commit() {
         try {
-            store.set(this._name, JSON.stringify(this._data))
+            store.set(this._name, JSON.stringify(this._data));
         } catch (e) {
-            console.log('Commit error', this._data)
+            console.log('Commit error', this._data);
         }
     }
 };
@@ -326,9 +350,9 @@ function renderRoot(router) {
     return renderView(view)
 };
 
+const app = new App();
 const router = new Router();
 const model = new Model();
-const app = new App();
 const booksController = new BooksController();
 
 router
@@ -343,10 +367,10 @@ model.defineModel({
     name: 'author',
     fields: {
         id: {type: 'string'},
-        fullName: {type: 'string', defaultTo: '', presence: true},
+        fullName: {type: 'string', defaultTo: 'No name', required: true},
         avatarUrl: {type: 'string', defaultTo: 'http://placehold.it/100x300'},
-        dateOfDeath: {type: 'string', defaultTo: ''},
-        city: {type: 'string', defaultTo: ''},
+        dateOfDeath: {type: 'string', defaultTo: 'No date'},
+        city: {type: 'string', defaultTo: 'No city'},
         books: {ref: 'book'}
     }
 });
@@ -355,17 +379,17 @@ model.defineModel({
     name: 'book',
     fields: {
         id: {type: 'string'},
-        title: {type: 'string', defaultTo: ''},
+        title: {type: 'string', defaultTo: 'No title'},
         image: {type: 'string', defaultTo: 'http://placehold.it/100x300'},
-        genre: {type: 'string', defaultTo: ''},
-        year: {type: 'string', defaultTo: ''},
+        genre: {type: 'string', defaultTo: 'No genre'},
+        year: {type: 'string', defaultTo: 'No date'},
         authors: {ref: 'author'}
     }
 });
 
 model.author.insert({
     id: '1',
-    fullName: 'Death Man',
+    fullName: 'Shevcheno',
     avatarUrl: '',
     dateOfDeath: '',
     city: '',
@@ -375,8 +399,8 @@ model.author.insert({
 model.book.insert({
     id: '1',
     title: 'Book of Death Man',
-    image: 'http://placehold.it/150x300',
-    genre: 'Novel',
+    //image: 'http://placehold.it/150x300',
+    //genre: 'Novel',
     year: '2000',
     authors: ['1']
 });
@@ -389,3 +413,4 @@ model.book.insert({
     year: '2001',
     authors: ['2']
 });
+
