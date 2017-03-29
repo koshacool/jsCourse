@@ -106,10 +106,13 @@ function p(elementType, props = {}, childrens = null) {
 
 const store = {
     get(key) {
-        return localStorage.getItem(key)
+        return localStorage.getItem(key);
     },
     set(key, value) {
-        return localStorage.setItem(key, value)
+        return localStorage.setItem(key, value);
+    },
+    remove(key) {
+        return localStorage.removeItem(key);
     }
 };
 
@@ -135,6 +138,15 @@ class Collection {
             this._commit();//Save data in localStorage
         } else {
             throw new Error({message: 'Bad data', data: data});
+        }
+    }
+
+    remove(id) {
+        try {
+            store.remove(id);
+            delete this._data[id];
+        } catch (e) {
+            console.log(e.message + 'Error: Can\'t remove data');
         }
     }
 
@@ -241,6 +253,21 @@ class BooksController {
     }
 };
 
+class AuthorsController {
+    index(location) {
+        const authors = model.author.findAll();
+        const view = renderAuthorsIndex(authors);
+        renderView(view);
+    }
+
+    show(_, location) {
+        const id = location.pathname.split('/')[2];
+        const author = model.author.find(id);
+        const view = renderAuthorsShow(author);
+        renderView(view);
+    }
+};
+
 function renderView(view) {
     const root = document.getElementById('app')
 
@@ -257,25 +284,52 @@ function renderBooksIndex(data) {
         p('div', {className: 'book'}, [
             p('img', {src: book.image}),
             p('a', {
-                href: '#', onclick(evt) {
+                href: '/books/' + book.id, onclick(evt) {
                     evt.preventDefault();
-                    router.navigate('/books/' + book.id)
+                    router.navigate(evt.currentTarget.pathname)
                 }
             }, book.title)
-        ])
+        ]);
 
-    return p('div', {className: 'books'}, data.map(renderBook))
+    return p('div', {className: 'books'}, data.map(renderBook));
 };
 
 function renderBooksShow(book) {
     return p('div', {className: 'book'}, [
         p('img', {src: book.image}),
         p('a', {
-            href: '#', onclick(evt) {
+            href: '/books/' + book.id, onclick(evt) {
                 evt.preventDefault();
-                router.navigate('/books/' + book.id)
+                router.navigate(evt.currentTarget.pathname)
             }
         }, book.title)
+    ])
+};
+
+function renderAuthorsIndex(data) {
+    const renderBook = author =>
+        p('div', {className: 'author'}, [
+            p('img', {src: author.avatarUrl}),
+            p('a', {
+                href: '/authors/' + author.id, onclick(evt) {
+                    evt.preventDefault();
+                    router.navigate(evt.currentTarget.pathname)
+                }
+            }, author.fullName)
+        ])
+
+    return p('div', {className: 'authors'}, data.map(renderBook))
+};
+
+function renderAuthorsShow(author) {
+    return p('div', {className: 'author'}, [
+        p('img', {src: author.avatarUrl}),
+        p('a', {
+            href: '/authors/' + author.id, onclick(evt) {
+                evt.preventDefault();
+                router.navigate(evt.currentTarget.pathname)
+            }
+        }, author.fullName)
     ])
 };
 
@@ -284,9 +338,9 @@ function renderNotFound(router) {
         p('div', {id: 'hello'}, [
             p('div', {textContent: '404! Not Found!'}),
             p('a', {
-                href: '#', textContent: 'Перейти на головну', onclick(evt) {
+                href: '/', textContent: 'Перейти на головну', onclick(evt) {
                     evt.preventDefault();
-                    router.navigate('/')
+                    router.navigate(evt.currentTarget.pathname)
                 }
             }),
             p('a', {
@@ -304,24 +358,24 @@ function renderHeader() {
     return p('header', {id: 'header'}, [
         p('div', {className: 'title'},
             p('a', {
-                href: '#', onclick(evt) {
+                href: '/', onclick(evt) {
                     evt.preventDefault();
-                    router.navigate('/')
+                    router.navigate(evt.currentTarget.pathname)
                 }
             }, 'Death poets\' community')
         ),
         p('div', {className: 'links'}, [
             p('a', {
-                href: '#', onclick(evt) {
+                href: '/books', onclick(evt) {
                     evt.preventDefault();
-                    router.navigate('/books')
+                    router.navigate(evt.currentTarget.pathname)
                 }
             }, 'Books'),
             ' ',
             p('a', {
-                href: '#', onclick(evt) {
+                href: '/authors', onclick(evt) {
                     evt.preventDefault();
-                    router.navigate('/authors')
+                    router.navigate(evt.currentTarget.pathname)
                 }
             }, 'Authors')
         ])
@@ -334,9 +388,9 @@ function renderRoot(router) {
             p('div', {textContent: 'Привіт, TernopilJS!'}),
             p('div', {textContent: ' Базовий приклад SPA без використання сторонніх бібліотек.'}),
             p('a', {
-                href: '#', textContent: 'Перейти на привітання', onclick(evt) {
+                href: '/hello', textContent: 'Перейти на привітання', onclick(evt) {
                     evt.preventDefault();
-                    router.navigate('/hello')
+                    router.navigate(evt.currentTarget.pathname)
                 }
             }),
             p('a', {
@@ -346,7 +400,6 @@ function renderRoot(router) {
                 }
             })
         ])
-
     return renderView(view)
 };
 
@@ -354,13 +407,14 @@ const app = new App();
 const router = new Router();
 const model = new Model();
 const booksController = new BooksController();
+const authorsController = new AuthorsController();
 
 router
     .add('/', renderRoot)
     .add('/books', booksController.index)
     .add(/(\/books\/)(\d+)/, booksController.show)
-    // .add('/authors', authorsController.index)
-    // .add('/(\/authors\/)(\d+)/', authorsController.show)
+    .add('/authors', authorsController.index)
+    .add(/(\/authors\/)(\d+)/, authorsController.show)
     .add('*', renderNotFound);
 
 model.defineModel({
