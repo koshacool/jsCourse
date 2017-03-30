@@ -282,6 +282,7 @@ class AuthorsController {
 
 };
 
+
 function renderView(view) {
     const root = document.getElementById('app')
 
@@ -309,19 +310,31 @@ function createRenderData(funcName, data) {
     return view;
 };
 
+
 function renderBooksIndex(data) {
     const renderBook = book =>
         p('div', {className: 'book'}, [
-            p('img', {src: book.image}),
-            p('a', {
-                href: '/books/' + book.id, onclick(evt) {
-                    evt.preventDefault();
-                    router.navigate(evt.currentTarget.pathname)
-                }
-            }, book.title)
-        ]);
+            p('div', {className: 'book'}, [
+                p('br'),
+                p('img', {src: book.image}),
+                p('a', {
+                    href: '/books/' + book.id, onclick(evt) {
+                        evt.preventDefault();
+                        router.navigate(evt.currentTarget.pathname)
+                    }
+                }, book.title),
+            ]
+            )]);
 
-    return p('div', {className: 'books'}, data.map(renderBook));
+    return p('div', {className: 'books'}, [
+        p('a', {
+            href: '#', onclick(evt) {
+                evt.preventDefault();
+                //addBook();
+            }
+        }, 'Add new book'),
+        p('div', {className: 'books'}, data.map(renderBook))
+    ]);
 };
 
 function renderBooksShow(book) {
@@ -451,6 +464,7 @@ function renderRoot(router) {
         ])
     return renderView(view)
 };
+
 
 const app = new App();
 const router = new Router();
