@@ -127,13 +127,13 @@ class Collection {
         this._rootModel = rootModel
         this._name = options.name
         this._fields = options.fields
-        this._data = {}//this._getInitialData();
+        this._data = this._getInitialData();
     }
 
     insert(data) {
         const validData = this._validateData(data);
         if (validData) {
-            this._data[data.id] = validData;
+            this._data ? this._data[data.id] = validData : this._data = validData;
             this._commit();//Save data in localStorage
         } else {
             throw new Error({message: 'Bad data', data: data});
@@ -157,15 +157,33 @@ class Collection {
     }
 
     findAll() {
-        const elements = Object.keys(this._data)
-            .map(key => this._data[key]);
+         let elements = [];
+        //console.log(this._data)
+        if (this._data) {
+            let keys = Object.keys(this._data);
+            elements = keys.map(key => this._data[key]);
+        }
         return elements;
     }
 
     _getInitialData() {
         try {
+            let data = {};
             const initialData = store.get(this._name);
-            return JSON.parse(initialData);
+            if (initialData) {
+                data =  JSON.parse(initialData);
+            }
+
+            //let keys = Object.keys(data);
+            //console.log(data)
+            //console.log(this._name)
+            //data = keys.map((item) => {
+            //    //let refData = data[item].ref;
+            //    console.log(data[item])
+            //    //data[item]['_' + this._name] = refData.map(id => this._rootModel[param].find(id, 'id'));
+            //});
+            //data[dataKey].map(id => this._rootModel[param].find(id, 'id'));
+            return data;
         } catch (e) {
             console.log(e.message);
         }
@@ -174,11 +192,12 @@ class Collection {
     _validateData(data) {
         const validation = {
             ref: (dataKey, value, param) => {
-
-                const refKey = '_' + param;
-                data[refKey] =  () => {
-                    return data[dataKey].map(id => this._rootModel[param].find(id, 'id'));
-                }
+                //console.log(param)
+                data.ref = param;
+                //const refKey = '_' + param;
+                //data[refKey] =  () => {
+                //    return data[dataKey].map(id => this._rootModel[param].find(id, 'id'));
+                //}
                 return true;
             },
             type: (dataKey, value, param) => {return (typeof value === param)},
@@ -234,7 +253,6 @@ class Collection {
     _commit() {
         try {
             store.set(this._name, JSON.stringify(this._data));
-            console.log(JSON.parse(store.get(this._name)))
         } catch (e) {
             console.log('Commit error', this._data);
         }
@@ -296,13 +314,18 @@ class AuthorsController {
 
 class Form {
     saveBook() {
+        let id = 1;
         let allBooks = model.book.findAll();
-        let lastBook = allBooks[allBooks.length - 1];
+        //console.log(allBooks);
+        if(allBooks.length > 0) {
+            let lastBook = allBooks[allBooks.length - 1];
+            id = ++lastBook.id;
+        }
 
         let form = document.getElementById('addBook');
         let inputs = form.elements;
         let book = {
-            id: lastBook ? (++lastBook.id).toString() : '1',
+            id: id.toString(),
             title: inputs.title.value,
             image: inputs.image.value,
             genre: inputs.genre.value,
@@ -310,8 +333,7 @@ class Form {
             authors: [inputs.authors.value]
         };
         model.book.insert(book);
-        router.navigate('/books')
-
+        router.navigate('/books');
     }
 }
 
@@ -344,7 +366,7 @@ function createRenderData(funcName, data = null) {
 
 function renderBooksIndex(data) {
     const renderBook = book =>
-        p('div', {className: 'book'}, [
+        p('div', {className: 'block'}, [
             p('div', {className: 'book'}, [
                 p('br'),
                 p('img', {src: book.image}),
@@ -441,7 +463,7 @@ function renderBooksAdd(authors, book = null) {
 
 
             p('span', {style: {width: '80px', display: 'inline-block'}}, 'Authors: '),
-            p('select', {name: 'authors', id: 'authors',  style: {}}, authors.map(renderAuthors)),
+            p('select', {name: 'authors', id: 'authors',  style: {}}, authors ? authors.map(renderAuthors) : ''),
             p('br'),
 
             p('button', {
@@ -585,7 +607,7 @@ model.defineModel({
         avatarUrl: {type: 'string', defaultTo: 'http://placehold.it/100x300'},
         dateOfDeath: {type: 'string', defaultTo: 'No date'},
         city: {type: 'string', defaultTo: 'No city'},
-        books: {ref: 'book'}
+        books: {ref: 'books'}
     }
 });
 
@@ -597,7 +619,7 @@ model.defineModel({
         image: {type: 'string', defaultTo: 'http://placehold.it/100x300'},
         genre: {type: 'string', defaultTo: 'No genre'},
         year: {type: 'string', defaultTo: 'No date'},
-        authors: {ref: 'author'}
+        authors: {ref: 'authors'}
     }
 });
 
@@ -616,38 +638,38 @@ router
 
 
 
-model.author.insert({
-    id: '1',
-    fullName: 'Shevcheno',
-    avatarUrl: '',
-    dateOfDeath: '',
-    city: '',
-    books: ['1']
-});
-
-model.author.insert({
-    id: '2',
-    fullName: 'Franko',
-    avatarUrl: '',
-    dateOfDeath: '',
-    city: '',
-    books: ['1']
-});
-
-model.book.insert({
-    id: '1',
-    title: 'Book of Death Man',
-    //image: 'http://placehold.it/150x300',
-    genre: '',
-    year: '2000',
-    authors: ['1', 2, 3]
-});
-
-model.book.insert({
-    id: '2',
-    title: 'Book of Second Death Man',
-    image: 'http://placehold.it/150x300',
-    genre: 'Novel',
-    year: '2001',
-    authors: ['2']
-});
+//model.author.insert({
+//    //id: '',
+//    fullName: 'Shevcheno',
+//    avatarUrl: '',
+//    dateOfDeath: '',
+//    city: '',
+//    books: ['1']
+//});
+//
+//model.author.insert({
+//    //id: '',
+//    fullName: 'Franko',
+//    avatarUrl: '',
+//    dateOfDeath: '',
+//    city: '',
+//    books: ['1']
+//});
+//
+//model.book.insert({
+//    //id: '',
+//    title: 'Book of Death Man',
+//    //image: 'http://placehold.it/150x300',
+//    genre: '',
+//    year: '2000',
+//    authors: ['1', 2, 3]
+//});
+//
+//model.book.insert({
+//    //id: '',
+//    title: 'Book of Second Death Man',
+//    image: 'http://placehold.it/150x300',
+//    genre: 'Novel',
+//    year: '2001',
+//    authors: ['2']
+//});
