@@ -119,15 +119,16 @@ const store = {
 class Model {
     defineModel(options) {
         this[options.name] = new Collection(options, this);
+        this[options.name]._data = this[options.name]._getInitialData();
     }
 };
 
 class Collection {
     constructor(options, rootModel) {
-        this._rootModel = rootModel
-        this._name = options.name
-        this._fields = options.fields
-        this._data = this._getInitialData();
+        this._rootModel = rootModel;
+        this._name = options.name;
+        this._fields = options.fields;
+        //this._data = this._getInitialData();
     }
 
     insert(data) {
@@ -172,21 +173,29 @@ class Collection {
             const initialData = store.get(this._name);
             if (initialData) {
                 data =  JSON.parse(initialData);
+                this._addRefFunction(data);
             }
-
-            //let keys = Object.keys(data);
-            //console.log(data)
-            //console.log(this._name)
-            //data = keys.map((item) => {
-            //    //let refData = data[item].ref;
-            //    console.log(data[item])
-            //    //data[item]['_' + this._name] = refData.map(id => this._rootModel[param].find(id, 'id'));
-            //});
-            //data[dataKey].map(id => this._rootModel[param].find(id, 'id'));
             return data;
         } catch (e) {
             console.log(e.message);
         }
+    }
+
+    _addRefFunction(data) {
+        let keys = Object.keys(data);
+
+        console.log(this._rootModel.book)
+        //let newData = keys.map((item) => {
+        //    let ref = (data[item].ref);
+        //    console.log(data[item][ref + 's']);
+        //    console.log(ref);
+        //    //data[item]['_' + this._name] = data[item][ref + 's'].map(id => this._rootModel[ref].find(id, 'id'));
+        //    //console.log(this._rootModel)
+        //
+        //});
+        //data[dataKey].map(id => this._rootModel[param].find(id, 'id'));
+
+        return data;
     }
 
     _validateData(data) {
@@ -274,7 +283,7 @@ class BooksController {
     showAuthors(_, location) {
         const id = location.pathname.split('/')[2];
         const book = model.book.find(id);
-        console.log(book)
+        //console.log(book)
         const authors = book ? book._author() : null;
         renderView(createRenderData(renderAuthorsIndex, authors));
     }
@@ -305,6 +314,7 @@ class AuthorsController {
     showBooks(_, location) {
         const id = location.pathname.split('/')[2];
         const author = model.author.find(id);
+        //console.log(this._rootModel)
         const books = author ? author._book() : null;
         renderView(createRenderData(renderBooksIndex, books));
     }
@@ -599,29 +609,7 @@ const saveForm = new Form();
 const booksController = new BooksController();
 const authorsController = new AuthorsController();
 
-model.defineModel({
-    name: 'author',
-    fields: {
-        id: {type: 'string'},
-        fullName: {type: 'string', defaultTo: 'No name', required: true},
-        avatarUrl: {type: 'string', defaultTo: 'http://placehold.it/100x300'},
-        dateOfDeath: {type: 'string', defaultTo: 'No date'},
-        city: {type: 'string', defaultTo: 'No city'},
-        books: {ref: 'books'}
-    }
-});
 
-model.defineModel({
-    name: 'book',
-    fields: {
-        id: {type: 'string'},
-        title: {type: 'string', defaultTo: 'No title'},
-        image: {type: 'string', defaultTo: 'http://placehold.it/100x300'},
-        genre: {type: 'string', defaultTo: 'No genre'},
-        year: {type: 'string', defaultTo: 'No date'},
-        authors: {ref: 'authors'}
-    }
-});
 
 router
     .add('/', renderRoot)
@@ -636,17 +624,40 @@ router
     .add(/(\/authors\/)(\d+)(\/books)$/, authorsController.showBooks)
     .add('*', renderNotFound);
 
+model.defineModel({
+    name: 'author',
+    fields: {
+        id: {type: 'string'},
+        fullName: {type: 'string', defaultTo: 'No name', required: true},
+        avatarUrl: {type: 'string', defaultTo: 'http://placehold.it/100x300'},
+        dateOfDeath: {type: 'string', defaultTo: 'No date'},
+        city: {type: 'string', defaultTo: 'No city'},
+        books: {ref: 'book'}
+    }
+});
+
+model.defineModel({
+    name: 'book',
+    fields: {
+        id: {type: 'string'},
+        title: {type: 'string', defaultTo: 'No title'},
+        image: {type: 'string', defaultTo: 'http://placehold.it/100x300'},
+        genre: {type: 'string', defaultTo: 'No genre'},
+        year: {type: 'string', defaultTo: 'No date'},
+        authors: {ref: 'author'}
+    }
+});
 
 
-//model.author.insert({
-//    //id: '',
-//    fullName: 'Shevcheno',
-//    avatarUrl: '',
-//    dateOfDeath: '',
-//    city: '',
-//    books: ['1']
-//});
-//
+model.author.insert({
+   id: '1',
+   fullName: 'Shevcheno',
+   avatarUrl: '',
+   dateOfDeath: '',
+   city: '',
+   books: ['1']
+});
+
 //model.author.insert({
 //    //id: '',
 //    fullName: 'Franko',
