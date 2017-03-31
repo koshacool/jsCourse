@@ -119,7 +119,14 @@ const store = {
 class Model {
     defineModel(options) {
         this[options.name] = new Collection(options, this);
-        this[options.name]._data = this[options.name]._getInitialData();
+        // this[options.name]._data = this[options.name]._getInitialData();
+    }
+
+    setRefData() {
+        let keys = Object.keys(this);
+        keys.map((key) => {
+            this[key]._data = this[key]._getInitialData();
+        });
     }
 };
 
@@ -128,14 +135,19 @@ class Collection {
         this._rootModel = rootModel;
         this._name = options.name;
         this._fields = options.fields;
-        //this._data = this._getInitialData();
+        // this._data = null;
     }
 
     insert(data) {
-        const validData = this._validateData(data);
+        let validData = this._validateData(data);
         if (validData) {
-            this._data ? this._data[data.id] = validData : this._data = validData;
+            if (!this._data) {
+                this._data = {};
+            }
+            this._data[validData.id] = validData;
+
             this._commit();//Save data in localStorage
+            this._data = this._getInitialData();
         } else {
             throw new Error({message: 'Bad data', data: data});
         }
@@ -153,28 +165,29 @@ class Collection {
     find(id, key = 'id') {
         const element = this.findAll()
             .find(item => item[key] == id);
-
         return element;
     }
 
     findAll() {
-         let elements = [];
-        //console.log(this._data)
+        let elements = [];
         if (this._data) {
             let keys = Object.keys(this._data);
             elements = keys.map(key => this._data[key]);
+
         }
+
         return elements;
     }
 
     _getInitialData() {
         try {
-            let data = {};
+            let data = null;
             const initialData = store.get(this._name);
             if (initialData) {
                 data =  JSON.parse(initialData);
                 this._addRefFunction(data);
             }
+
             return data;
         } catch (e) {
             console.log(e.message);
@@ -184,18 +197,14 @@ class Collection {
     _addRefFunction(data) {
         let keys = Object.keys(data);
 
-        console.log(this._rootModel.book)
-        //let newData = keys.map((item) => {
-        //    let ref = (data[item].ref);
-        //    console.log(data[item][ref + 's']);
-        //    console.log(ref);
-        //    //data[item]['_' + this._name] = data[item][ref + 's'].map(id => this._rootModel[ref].find(id, 'id'));
-        //    //console.log(this._rootModel)
-        //
-        //});
-        //data[dataKey].map(id => this._rootModel[param].find(id, 'id'));
+        let newData = keys.map((key) => {
+            let ref = data[key].ref;
+            let refData = data[key][ref + 's'];
+                data[key]['_' + ref] = () => refData.map((refId) => {
+                    return this._rootModel[ref].find(refId);
+                });
+        });
 
-        return data;
     }
 
     _validateData(data) {
@@ -246,7 +255,7 @@ class Collection {
             }
 
             for (var param in objectParams) {//Validate field
-                var result = (validation[param])(key, data[key] ,objectParams[param]);
+                var result = (validation[param])(key, data[key], objectParams[param]);
                 if (!result) {
 
                     return false;
@@ -283,7 +292,6 @@ class BooksController {
     showAuthors(_, location) {
         const id = location.pathname.split('/')[2];
         const book = model.book.find(id);
-        //console.log(book)
         const authors = book ? book._author() : null;
         renderView(createRenderData(renderAuthorsIndex, authors));
     }
@@ -306,6 +314,8 @@ class AuthorsController {
     }
 
     show(_, location) {
+
+
         const id = location.pathname.split('/')[2];
         const author = model.author.find(id);
         renderView(createRenderData(renderAuthorsShow, author));
@@ -314,9 +324,16 @@ class AuthorsController {
     showBooks(_, location) {
         const id = location.pathname.split('/')[2];
         const author = model.author.find(id);
-        //console.log(this._rootModel)
         const books = author ? author._book() : null;
         renderView(createRenderData(renderBooksIndex, books));
+    }
+
+    add() {
+        let app = document.getElementById('app');
+        let authors = document.getElementById('authors');
+        let books = model.book.findAll();
+        app.appendChild(renderAuthorsAdd(books));
+        authors.style.opacity = 0.1;
     }
 
 
@@ -329,7 +346,7 @@ class Form {
         //console.log(allBooks);
         if(allBooks.length > 0) {
             let lastBook = allBooks[allBooks.length - 1];
-            id = ++lastBook.id;
+            id = parseInt(lastBook.id) + 1;
         }
 
         let form = document.getElementById('addBook');
@@ -340,7 +357,7 @@ class Form {
             image: inputs.image.value,
             genre: inputs.genre.value,
             year: inputs.year.value,
-            authors: [inputs.authors.value]
+            authors: inputs.authors.value ? [inputs.authors.value] : []
         };
         model.book.insert(book);
         router.navigate('/books');
@@ -509,7 +526,15 @@ function renderAuthorsIndex(data) {
         }
     }
 
-    return p('div', {className: 'authors'}, data.map(renderBook))
+    return p('div', {className: 'authors', id: 'authors'}, [
+        p('a', {
+            href: '/authors/add', onclick(evt) {
+                evt.preventDefault();
+                router.navigate(evt.currentTarget.pathname);
+            }
+        }, 'Add new author'),
+        p('div', {className: 'authors'}, data.map(renderBook))
+    ]);
 };
 
 function renderAuthorsShow(author) {
@@ -530,6 +555,78 @@ function renderAuthorsShow(author) {
         }, 'Books'),
     ])
 };
+
+function renderAuthorsAdd(books, author = null) {
+
+    const renderBooks = book =>
+        p('option', {id: 'book' + book.id, value: book.id}, book.fullName);
+
+
+    return p('div', {
+        className: 'form',
+        style: {
+            opacity: 1,
+            position: 'absolute',
+            top: '20%',
+            width: '400px',
+            left: '40%',
+
+        }}, [
+        p('form', {
+            className: 'form',
+            id: 'addAuthor',
+            onsubmit(evt) {
+                evt.preventDefault();
+                saveForm.saveAuthor();
+            }}, [
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Title: '),
+            p('input', {
+                name: 'title',
+                type: 'text',
+            }, 'Title'),
+            p('br'),
+
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Image url: '),
+            p('input', {
+                name: 'image',
+                type: 'text',
+            }, 'Image url'),
+            p('br'),
+
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Genre: '),
+            p('input', {
+                name: 'genre',
+                type: 'text',
+            }, 'Genre'),
+            p('br'),
+
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Year: '),
+            p('input', {
+                name: 'year',
+                type: 'text',
+            }, 'date'),
+            p('br'),
+
+
+
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Authors: '),
+            p('select', {name: 'books', id: 'books',  style: {}}, books ? books.map(renderBooks) : ''),
+            p('br'),
+
+            p('button', {
+                type: 'submit'
+            }, 'Add'),
+
+            p('a', {
+                href: '#', textContent: 'Back', onclick(evt) {
+                    evt.preventDefault();
+                    router.navigateBack()
+                }
+            })
+        ]),
+    ])
+};
+
 
 function renderNotFound(router) {
     const view =
@@ -609,21 +706,6 @@ const saveForm = new Form();
 const booksController = new BooksController();
 const authorsController = new AuthorsController();
 
-
-
-router
-    .add('/', renderRoot)
-    .add('/books', booksController.index)
-    .add(/(\/books\/)(\d+)$/, booksController.show)
-    .add(/(\/books\/)(\d+)(\/authors)$/, booksController.showAuthors)
-    .add('/books/add', booksController.add)
-    //.add(/(\/books\/)(\/add\/)(\d+)$/, booksController.edit)
-
-    .add('/authors', authorsController.index)
-    .add(/(\/authors\/)(\d+)$/, authorsController.show)
-    .add(/(\/authors\/)(\d+)(\/books)$/, authorsController.showBooks)
-    .add('*', renderNotFound);
-
 model.defineModel({
     name: 'author',
     fields: {
@@ -635,7 +717,6 @@ model.defineModel({
         books: {ref: 'book'}
     }
 });
-
 model.defineModel({
     name: 'book',
     fields: {
@@ -648,16 +729,34 @@ model.defineModel({
     }
 });
 
+model.setRefData();
 
-model.author.insert({
-   id: '1',
-   fullName: 'Shevcheno',
-   avatarUrl: '',
-   dateOfDeath: '',
-   city: '',
-   books: ['1']
-});
+router
+    .add('/', renderRoot)
+    .add('/books', booksController.index)
+    .add(/(\/books\/)(\d+)$/, booksController.show)
+    .add(/(\/books\/)(\d+)(\/authors)$/, booksController.showAuthors)
+    .add('/books/add', booksController.add)
+    //.add(/(\/books\/)(\/add\/)(\d+)$/, booksController.edit)
 
+    .add('/authors', authorsController.index)
+    .add(/(\/authors\/)(\d+)$/, authorsController.show)
+    .add(/(\/authors\/)(\d+)(\/books)$/, authorsController.showBooks)
+    .add('/authors/add', authorsController.add)
+    .add('*', renderNotFound);
+
+
+
+
+// model.author.insert({
+//    id: '1',
+//    fullName: 'Shevcheno',
+//    avatarUrl: '',
+//    dateOfDeath: '',
+//    city: '',
+//    books: ['1']
+// });
+//
 //model.author.insert({
 //    //id: '',
 //    fullName: 'Franko',
