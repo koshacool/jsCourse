@@ -127,12 +127,11 @@ class Collection {
         this._rootModel = rootModel
         this._name = options.name
         this._fields = options.fields
-        this._data = {} //this._getInitialData()
+        this._data = {}//this._getInitialData();
     }
 
     insert(data) {
         const validData = this._validateData(data);
-
         if (validData) {
             this._data[data.id] = validData;
             this._commit();//Save data in localStorage
@@ -175,6 +174,7 @@ class Collection {
     _validateData(data) {
         const validation = {
             ref: (dataKey, value, param) => {
+
                 const refKey = '_' + param;
                 data[refKey] =  () => {
                     return data[dataKey].map(id => this._rootModel[param].find(id, 'id'));
@@ -220,6 +220,7 @@ class Collection {
             for (var param in objectParams) {//Validate field
                 var result = (validation[param])(key, data[key] ,objectParams[param]);
                 if (!result) {
+
                     return false;
                 }
             }
@@ -233,6 +234,7 @@ class Collection {
     _commit() {
         try {
             store.set(this._name, JSON.stringify(this._data));
+            console.log(JSON.parse(store.get(this._name)))
         } catch (e) {
             console.log('Commit error', this._data);
         }
@@ -240,7 +242,7 @@ class Collection {
 };
 
 class BooksController {
-    index(location) {
+    index() {
         const books = model.book.findAll();
         renderView(createRenderData(renderBooksIndex, books));
     }
@@ -254,10 +256,20 @@ class BooksController {
     showAuthors(_, location) {
         const id = location.pathname.split('/')[2];
         const book = model.book.find(id);
+        console.log(book)
         const authors = book ? book._author() : null;
-        console.log(authors)
         renderView(createRenderData(renderAuthorsIndex, authors));
     }
+
+    add() {
+        let app = document.getElementById('app');
+        let books = document.getElementById('books');
+        let authors = model.author.findAll();
+        app.appendChild(renderBooksAdd(authors));
+        books.style.opacity = 0.1;
+    }
+
+
 };
 
 class AuthorsController {
@@ -282,19 +294,39 @@ class AuthorsController {
 
 };
 
+class Form {
+    saveBook() {
+        let allBooks = model.book.findAll();
+        let lastBook = allBooks[allBooks.length - 1];
+
+        let form = document.getElementById('addBook');
+        let inputs = form.elements;
+        let book = {
+            id: lastBook ? (++lastBook.id).toString() : '1',
+            title: inputs.title.value,
+            image: inputs.image.value,
+            genre: inputs.genre.value,
+            year: inputs.year.value,
+            authors: [inputs.authors.value]
+        };
+        model.book.insert(book);
+        router.navigate('/books')
+
+    }
+}
 
 function renderView(view) {
-    const root = document.getElementById('app')
+    const root = document.getElementById('app');
 
     while (root.firstChild) {
-        root.removeChild(root.firstChild)
+        root.removeChild(root.firstChild);
     }
 
-    root.appendChild(renderHeader())
-    root.appendChild(view)
+    root.appendChild(renderHeader());
+    root.appendChild(view);
 };
 
-function createRenderData(funcName, data) {
+function createRenderData(funcName, data = null) {
     let view = '';
 
     if (data) {
@@ -309,7 +341,6 @@ function createRenderData(funcName, data) {
 
     return view;
 };
-
 
 function renderBooksIndex(data) {
     const renderBook = book =>
@@ -326,11 +357,11 @@ function renderBooksIndex(data) {
             ]
             )]);
 
-    return p('div', {className: 'books'}, [
+    return p('div', {className: 'books', id: 'books'}, [
         p('a', {
-            href: '#', onclick(evt) {
+            href: '/books/add', onclick(evt) {
                 evt.preventDefault();
-                //addBook();
+                router.navigate(evt.currentTarget.pathname);
             }
         }, 'Add new book'),
         p('div', {className: 'books'}, data.map(renderBook))
@@ -355,6 +386,79 @@ function renderBooksShow(book) {
         }, 'Authors'),
     ])
 };
+
+function renderBooksAdd(authors, book = null) {
+
+    const renderAuthors = author =>
+        p('option', {id: 'author' + author.id, value: author.id}, author.fullName);
+
+
+    return p('div', {
+        className: 'form',
+        style: {
+            opacity: 1,
+            position: 'absolute',
+            top: '20%',
+            width: '400px',
+            left: '40%',
+
+        }}, [
+        p('form', {
+            className: 'form',
+            id: 'addBook',
+            onsubmit(evt) {
+                evt.preventDefault();
+                saveForm.saveBook();
+            }}, [
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Title: '),
+            p('input', {
+                name: 'title',
+                type: 'text',
+            }, 'Title'),
+            p('br'),
+
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Image url: '),
+            p('input', {
+                name: 'image',
+                type: 'text',
+            }, 'Image url'),
+            p('br'),
+
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Genre: '),
+            p('input', {
+                name: 'genre',
+                type: 'text',
+            }, 'Genre'),
+            p('br'),
+
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Year: '),
+            p('input', {
+                name: 'year',
+                type: 'text',
+            }, 'date'),
+            p('br'),
+
+
+
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Authors: '),
+            p('select', {name: 'authors', id: 'authors',  style: {}}, authors.map(renderAuthors)),
+            p('br'),
+
+            p('button', {
+                type: 'submit'
+            }, 'Add'),
+
+            p('a', {
+                href: '#', textContent: 'Back', onclick(evt) {
+                    evt.preventDefault();
+                    router.navigateBack()
+                }
+            })
+        ]),
+    ])
+};
+
+
 
 function renderAuthorsIndex(data) {
     const renderBook = author => {
@@ -469,19 +573,9 @@ function renderRoot(router) {
 const app = new App();
 const router = new Router();
 const model = new Model();
-
+const saveForm = new Form();
 const booksController = new BooksController();
 const authorsController = new AuthorsController();
-
-router
-    .add('/', renderRoot)
-    .add('/books', booksController.index)
-    .add(/(\/books\/)(\d+)$/, booksController.show)
-    .add(/(\/books\/)(\d+)(\/authors)$/, booksController.showAuthors)
-    .add('/authors', authorsController.index)
-    .add(/(\/authors\/)(\d+)$/, authorsController.show)
-    .add(/(\/authors\/)(\d+)(\/books)$/, authorsController.showBooks)
-    .add('*', renderNotFound);
 
 model.defineModel({
     name: 'author',
@@ -507,6 +601,21 @@ model.defineModel({
     }
 });
 
+router
+    .add('/', renderRoot)
+    .add('/books', booksController.index)
+    .add(/(\/books\/)(\d+)$/, booksController.show)
+    .add(/(\/books\/)(\d+)(\/authors)$/, booksController.showAuthors)
+    .add('/books/add', booksController.add)
+    //.add(/(\/books\/)(\/add\/)(\d+)$/, booksController.edit)
+
+    .add('/authors', authorsController.index)
+    .add(/(\/authors\/)(\d+)$/, authorsController.show)
+    .add(/(\/authors\/)(\d+)(\/books)$/, authorsController.showBooks)
+    .add('*', renderNotFound);
+
+
+
 model.author.insert({
     id: '1',
     fullName: 'Shevcheno',
@@ -529,7 +638,7 @@ model.book.insert({
     id: '1',
     title: 'Book of Death Man',
     //image: 'http://placehold.it/150x300',
-    //genre: 'Novel',
+    genre: '',
     year: '2000',
     authors: ['1', 2, 3]
 });
