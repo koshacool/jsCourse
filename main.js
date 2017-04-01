@@ -868,6 +868,9 @@ function renderSearch(data = null, renderFunctionName = null) {
             onchange(evt) {
                 evt.preventDefault();
                 saveForm.search();
+            },
+            onsubmit(evt) {
+                evt.preventDefault();
             }
            }, [
                 p('span', {}, 'Book'),
