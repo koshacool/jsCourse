@@ -155,10 +155,11 @@ class Collection {
 
     remove(id) {
         try {
-            store.remove(id);
             delete this._data[id];
+            this._commit();//Save data in localStorage
+            this._data = this._getInitialData();
         } catch (e) {
-            console.log(e.message + 'Error: Can\'t remove data');
+            throw new Error('Error: can\'t remove');
         }
     }
 
@@ -173,16 +174,36 @@ class Collection {
         if (this._data) {
             let keys = Object.keys(this._data);
             elements = keys.map(key => this._data[key]);
-
         }
 
         return elements;
+    }
+
+    search(byValue) {
+        let pattern = new RegExp('(' + byValue + ')', 'i');//Create pattern for search data
+        let data = this.findAll();//Get all data
+
+        //Find data by pattern
+        let foundData = data.filter((elem) => {
+            let elemKeys = Object.keys(elem);//Get fields keys from element
+
+            //Check field value by pattern
+            return elemKeys.some((key) => {
+                if (typeof elem[key] === 'string') {
+                    return elem[key].match(pattern);
+                }
+                return false;
+            });
+        });
+
+        return foundData;
     }
 
     _getInitialData() {
         try {
             let data = null;
             const initialData = store.get(this._name);
+
             if (initialData) {
                 data =  JSON.parse(initialData);
                 this._addRefFunction(data);
@@ -304,6 +325,16 @@ class BooksController {
         books.style.opacity = 0.1;
     }
 
+    remove(_, location) {
+        const id = location.pathname.split('/')[3];
+        try {
+            model.book.remove(id);
+            router.navigate('/books');
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
 
 };
 
@@ -336,7 +367,15 @@ class AuthorsController {
         authors.style.opacity = 0.1;
     }
 
-
+    remove(_, location) {
+        const id = location.pathname.split('/')[3];
+        try {
+            model.author.remove(id);
+            router.navigate('/authors');
+        } catch (e) {
+            console.log(e);
+        }
+    }
 };
 
 class Form {
@@ -362,6 +401,50 @@ class Form {
         model.book.insert(book);
         router.navigate('/books');
     }
+
+    saveAuthor() {
+        let id = 1;
+        let allAuthors = model.author.findAll();
+        //console.log(allBooks);
+        if(allAuthors.length > 0) {
+            let lastAuthor = allAuthors[allAuthors.length - 1];
+            id = parseInt(lastAuthor.id) + 1;
+        }
+
+        let form = document.getElementById('addAuthor');
+        let inputs = form.elements;
+        let author = {
+            id: id.toString(),
+            fullName: inputs.fullName.value,
+            image: inputs.image.value,
+            dateOfDeath: inputs.dateOfDeath.value,
+            city: inputs.city.value,
+            books: inputs.books.value ? [inputs.books.value] : []
+        };
+        model.author.insert(author);
+        router.navigate('/authors');
+    }
+
+    search() {
+        let form = document.getElementById('search');
+        let inputs = form.elements;
+        let searchBy = inputs[2].value;//Get value for search by this
+
+        let what = Object.keys(inputs).filter((item) => {
+            return inputs[item].checked;
+        });
+
+        let collectionName = inputs[what].value;
+
+        let result = model[collectionName].search(searchBy);
+        let dataBlock = document.getElementById('searchResult');
+        dataBlock.innerHTML = '';
+        if (collectionName === 'book') {
+            dataBlock.appendChild(renderBooksIndex(result, false));
+        } else {
+            dataBlock.appendChild(renderAuthorsIndex(result, false));
+        }
+    }
 }
 
 function renderView(view) {
@@ -377,7 +460,6 @@ function renderView(view) {
 
 function createRenderData(funcName, data = null) {
     let view = '';
-
     if (data) {
         view = (funcName)(data);
     } else {
@@ -391,7 +473,8 @@ function createRenderData(funcName, data = null) {
     return view;
 };
 
-function renderBooksIndex(data) {
+
+function renderBooksIndex(data, showAdd = true) {
     const renderBook = book =>
         p('div', {className: 'block'}, [
             p('div', {className: 'book'}, [
@@ -403,8 +486,20 @@ function renderBooksIndex(data) {
                         router.navigate(evt.currentTarget.pathname)
                     }
                 }, book.title),
+                p('br'),
+                    p('a', {
+                        href: '/books/remove/' + book.id, onclick(evt) {
+                            evt.preventDefault();
+                            router.navigate(evt.currentTarget.pathname)
+                        }
+                    }, 'remove'),
+
             ]
             )]);
+
+    if (!showAdd) {
+        return  p('div', {className: 'authors'}, data.map(renderBook));
+    }
 
     return p('div', {className: 'books', id: 'books'}, [
         p('a', {
@@ -413,7 +508,7 @@ function renderBooksIndex(data) {
                 router.navigate(evt.currentTarget.pathname);
             }
         }, 'Add new book'),
-        p('div', {className: 'books'}, data.map(renderBook))
+        p('div', {className: 'authors'}, data.map(renderBook)),
     ]);
 };
 
@@ -509,21 +604,34 @@ function renderBooksAdd(authors, book = null) {
 
 
 
-function renderAuthorsIndex(data) {
+function renderAuthorsIndex(data, showAdd = true) {
     const renderBook = author => {
         if (author) {
             return p('div', {className: 'author'}, [
+                p('br'),
                 p('img', {src: author.avatarUrl}),
                 p('a', {
                     href: '/authors/' + author.id, onclick(evt) {
                         evt.preventDefault();
                         router.navigate(evt.currentTarget.pathname)
                     }
-                }, author.fullName)
+                }, author.fullName),
+                p('br'),
+                p('a', {
+                    href: '/authors/remove/' + author.id, onclick(evt) {
+                        evt.preventDefault();
+                        router.navigate(evt.currentTarget.pathname)
+                    }
+                }, 'remove'),
+
             ])
         } else {
             return p('br')
         }
+    }
+
+    if (!showAdd) {
+        return  p('div', {className: 'authors'}, data.map(renderBook));
     }
 
     return p('div', {className: 'authors', id: 'authors'}, [
@@ -558,8 +666,10 @@ function renderAuthorsShow(author) {
 
 function renderAuthorsAdd(books, author = null) {
 
-    const renderBooks = book =>
-        p('option', {id: 'book' + book.id, value: book.id}, book.fullName);
+    const renderBooks = book => {
+        return p('option', {id: 'book' + book.id, value: book.id}, book.title);
+    }
+
 
 
     return p('div', {
@@ -579,37 +689,35 @@ function renderAuthorsAdd(books, author = null) {
                 evt.preventDefault();
                 saveForm.saveAuthor();
             }}, [
-            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Title: '),
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'FullName: '),
             p('input', {
-                name: 'title',
+                name: 'fullName',
                 type: 'text',
+                required: 'required',
             }, 'Title'),
             p('br'),
 
-            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Image url: '),
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Avarar url: '),
             p('input', {
                 name: 'image',
                 type: 'text',
-            }, 'Image url'),
+            }, 'Avarar url'),
             p('br'),
 
-            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Genre: '),
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Date of death: '),
             p('input', {
-                name: 'genre',
+                name: 'dateOfDeath',
                 type: 'text',
-            }, 'Genre'),
+            }, 'DateOfDeath'),
             p('br'),
 
-            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Year: '),
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'City: '),
             p('input', {
-                name: 'year',
+                name: 'city',
                 type: 'text',
-            }, 'date'),
+            }, 'City'),
             p('br'),
-
-
-
-            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Authors: '),
+            p('span', {style: {width: '80px', display: 'inline-block'}}, 'Books: '),
             p('select', {name: 'books', id: 'books',  style: {}}, books ? books.map(renderBooks) : ''),
             p('br'),
 
@@ -672,7 +780,14 @@ function renderHeader() {
                     evt.preventDefault();
                     router.navigate(evt.currentTarget.pathname)
                 }
-            }, 'Authors')
+            }, 'Authors'),
+            ' ',
+            p('a', {
+                href: '/search', onclick(evt) {
+                    evt.preventDefault();
+                    router.navigate(evt.currentTarget.pathname)
+                }
+            }, 'Search')
         ])
     ])
 };
@@ -698,6 +813,61 @@ function renderRoot(router) {
     return renderView(view)
 };
 
+function renderSearch(data = null, renderFunctionName = null) {
+
+    const view =  p('div', {
+        className: 'form',
+        id: 'form',
+        style: {
+            opacity: 1,
+            position: 'absolute',
+            top: '20%',
+            width: '400px',
+            left: '40%',
+
+        }}, [
+        p('form', {
+            className: 'form',
+            id: 'search',
+            onsubmit(evt) {
+                evt.preventDefault();
+                saveForm.search();
+            }}, [
+                p('span', {}, 'Book'),
+                p('input', {
+                    type: 'radio',
+                    name: 'searchBy',
+                    checked: 'checked',
+                    value: 'book'
+                    }, 'book'),
+                ' ',
+
+                p('span', {}, 'Author'),
+                p('input', {
+                    type: 'radio',
+                    name: 'searchBy',
+                    value: 'author'
+                    }, 'author'),
+                '',
+
+                p('input', {
+                    type: 'text',
+                    name: 'whatSearch',
+                    required: 'required',
+                }, ''),
+                '',
+
+                p('button', {
+                    type: 'submit'
+                }, 'OK'),
+        ]),
+
+        p('div', {id: 'searchResult'}, ''),
+    ])
+
+        renderView(view)
+};
+
 
 const app = new App();
 const router = new Router();
@@ -717,6 +887,7 @@ model.defineModel({
         books: {ref: 'book'}
     }
 });
+
 model.defineModel({
     name: 'book',
     fields: {
@@ -733,17 +904,23 @@ model.setRefData();
 
 router
     .add('/', renderRoot)
+    .add('*', renderNotFound)
+    .add('/search', renderSearch)
+
     .add('/books', booksController.index)
     .add(/(\/books\/)(\d+)$/, booksController.show)
     .add(/(\/books\/)(\d+)(\/authors)$/, booksController.showAuthors)
     .add('/books/add', booksController.add)
+    .add(/(\/books\/remove\/)(\d+)$/, booksController.remove)
     //.add(/(\/books\/)(\/add\/)(\d+)$/, booksController.edit)
 
     .add('/authors', authorsController.index)
     .add(/(\/authors\/)(\d+)$/, authorsController.show)
     .add(/(\/authors\/)(\d+)(\/books)$/, authorsController.showBooks)
     .add('/authors/add', authorsController.add)
-    .add('*', renderNotFound);
+    .add(/(\/authors\/remove\/)(\d+)$/, authorsController.remove)
+
+
 
 
 
