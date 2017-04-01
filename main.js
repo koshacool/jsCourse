@@ -317,11 +317,17 @@ class BooksController {
         renderView(createRenderData(renderAuthorsIndex, authors));
     }
 
-    add() {
+    add(_, location) {
+        let book = null;
+        const id = location.pathname.split('/')[3];
+        if (id) {
+            book = model.book.find(id);
+        }
+
         let app = document.getElementById('app');
         let books = document.getElementById('books');
         let authors = model.author.findAll();
-        app.appendChild(renderBooksAdd(authors));
+        app.appendChild(renderBooksAdd(authors, book));
         books.style.opacity = 0.1;
     }
 
@@ -359,11 +365,16 @@ class AuthorsController {
         renderView(createRenderData(renderBooksIndex, books));
     }
 
-    add() {
+    add(_, location) {
+        let author = null;
+        const id = location.pathname.split('/')[3];
+        if (id) {
+            author = model.author.find(id);
+        }
         let app = document.getElementById('app');
         let authors = document.getElementById('authors');
         let books = model.book.findAll();
-        app.appendChild(renderAuthorsAdd(books));
+        app.appendChild(renderAuthorsAdd(books, author));
         authors.style.opacity = 0.1;
     }
 
@@ -379,18 +390,23 @@ class AuthorsController {
 };
 
 class Form {
-    saveBook() {
+    saveBook(book) {
         let id = 1;
-        let allBooks = model.book.findAll();
-        //console.log(allBooks);
-        if(allBooks.length > 0) {
-            let lastBook = allBooks[allBooks.length - 1];
-            id = parseInt(lastBook.id) + 1;
+        if (book) {
+            id = book.id;
+        } else {
+            let allBooks = model.book.findAll();
+            //console.log(allBooks);
+            if(allBooks.length > 0) {
+                let lastBook = allBooks[allBooks.length - 1];
+                id = parseInt(lastBook.id) + 1;
+            }
         }
+
 
         let form = document.getElementById('addBook');
         let inputs = form.elements;
-        let book = {
+        book = {
             id: id.toString(),
             title: inputs.title.value,
             image: inputs.image.value,
@@ -402,21 +418,26 @@ class Form {
         router.navigate('/books');
     }
 
-    saveAuthor() {
+    saveAuthor(author) {
         let id = 1;
-        let allAuthors = model.author.findAll();
-        //console.log(allBooks);
-        if(allAuthors.length > 0) {
-            let lastAuthor = allAuthors[allAuthors.length - 1];
-            id = parseInt(lastAuthor.id) + 1;
+        if (author) {
+            id = author.id;
+        } else {
+            let allAuthors = model.author.findAll();
+            //console.log(allBooks);
+            if(allAuthors.length > 0) {
+                let lastAuthor = allAuthors[allAuthors.length - 1];
+                id = parseInt(lastAuthor.id) + 1;
+            }
         }
+
 
         let form = document.getElementById('addAuthor');
         let inputs = form.elements;
-        let author = {
+        author = {
             id: id.toString(),
             fullName: inputs.fullName.value,
-            image: inputs.image.value,
+            avatarUrl: inputs.avatarUrl.value,
             dateOfDeath: inputs.dateOfDeath.value,
             city: inputs.city.value,
             books: inputs.books.value ? [inputs.books.value] : []
@@ -515,12 +536,15 @@ function renderBooksIndex(data, showAdd = true) {
 function renderBooksShow(book) {
     return p('div', {className: 'book'}, [
         p('img', {src: book.image}),
+        p('br'),
+        p('span', {}, book.title),
+        p('br'),
         p('a', {
-            href: '/books/' + book.id, onclick(evt) {
+            href: '/books/add/' + book.id, onclick(evt) {
                 evt.preventDefault();
                 router.navigate(evt.currentTarget.pathname);
             }
-        }, book.title),
+        }, 'edit'),
         p('br'),
         p('a', {
             href: '/books/' + book.id + '/authors', onclick(evt) {
@@ -552,12 +576,13 @@ function renderBooksAdd(authors, book = null) {
             id: 'addBook',
             onsubmit(evt) {
                 evt.preventDefault();
-                saveForm.saveBook();
+                saveForm.saveBook(book);
             }}, [
             p('span', {style: {width: '80px', display: 'inline-block'}}, 'Title: '),
             p('input', {
                 name: 'title',
                 type: 'text',
+                value: book ? book.title : '',
             }, 'Title'),
             p('br'),
 
@@ -565,6 +590,7 @@ function renderBooksAdd(authors, book = null) {
             p('input', {
                 name: 'image',
                 type: 'text',
+                value: book ? book.image : '',
             }, 'Image url'),
             p('br'),
 
@@ -572,6 +598,7 @@ function renderBooksAdd(authors, book = null) {
             p('input', {
                 name: 'genre',
                 type: 'text',
+                value: book ? book.genre : '',
             }, 'Genre'),
             p('br'),
 
@@ -579,6 +606,7 @@ function renderBooksAdd(authors, book = null) {
             p('input', {
                 name: 'year',
                 type: 'text',
+                value: book ? book.year : '',
             }, 'date'),
             p('br'),
 
@@ -590,7 +618,7 @@ function renderBooksAdd(authors, book = null) {
 
             p('button', {
                 type: 'submit'
-            }, 'Add'),
+            }, 'Save'),
 
             p('a', {
                 href: '#', textContent: 'Back', onclick(evt) {
@@ -648,12 +676,15 @@ function renderAuthorsIndex(data, showAdd = true) {
 function renderAuthorsShow(author) {
     return p('div', {className: 'author'}, [
         p('img', {src: author.avatarUrl}),
+        p('br'),
+        p('span', {}, author.fullName),
+        p('br'),
         p('a', {
-            href: '/authors/' + author.id, onclick(evt) {
+            href: '/authors/add/' + author.id, onclick(evt) {
                 evt.preventDefault();
-                router.navigate(evt.currentTarget.pathname)
+                router.navigate(evt.currentTarget.pathname);
             }
-        }, author.fullName),
+        }, 'edit'),
         p('br'),
         p('a', {
             href: '/authors/' + author.id + '/books', onclick(evt) {
@@ -671,7 +702,7 @@ function renderAuthorsAdd(books, author = null) {
     }
 
 
-
+console.log(author)
     return p('div', {
         className: 'form',
         style: {
@@ -694,13 +725,15 @@ function renderAuthorsAdd(books, author = null) {
                 name: 'fullName',
                 type: 'text',
                 required: 'required',
-            }, 'Title'),
+                value: author ? author.fullName : '',
+            }, 'FullName'),
             p('br'),
 
             p('span', {style: {width: '80px', display: 'inline-block'}}, 'Avarar url: '),
             p('input', {
-                name: 'image',
+                name: 'avatarUrl',
                 type: 'text',
+                value: author ? author.avatarUrl : '',
             }, 'Avarar url'),
             p('br'),
 
@@ -708,6 +741,7 @@ function renderAuthorsAdd(books, author = null) {
             p('input', {
                 name: 'dateOfDeath',
                 type: 'text',
+                value: author ? author.dateOfDeath : '',
             }, 'DateOfDeath'),
             p('br'),
 
@@ -715,6 +749,7 @@ function renderAuthorsAdd(books, author = null) {
             p('input', {
                 name: 'city',
                 type: 'text',
+                value: author ? author.city : '',
             }, 'City'),
             p('br'),
             p('span', {style: {width: '80px', display: 'inline-block'}}, 'Books: '),
@@ -723,7 +758,7 @@ function renderAuthorsAdd(books, author = null) {
 
             p('button', {
                 type: 'submit'
-            }, 'Add'),
+            }, 'Save'),
 
             p('a', {
                 href: '#', textContent: 'Back', onclick(evt) {
@@ -911,12 +946,14 @@ router
     .add(/(\/books\/)(\d+)$/, booksController.show)
     .add(/(\/books\/)(\d+)(\/authors)$/, booksController.showAuthors)
     .add('/books/add', booksController.add)
+    .add(/(\/books\/add\/)(\d+)$/, booksController.add)
     .add(/(\/books\/remove\/)(\d+)$/, booksController.remove)
     //.add(/(\/books\/)(\/add\/)(\d+)$/, booksController.edit)
 
     .add('/authors', authorsController.index)
     .add(/(\/authors\/)(\d+)$/, authorsController.show)
     .add(/(\/authors\/)(\d+)(\/books)$/, authorsController.showBooks)
+    .add(/(\/authors\/add\/)(\d+)$/, authorsController.add)
     .add('/authors/add', authorsController.add)
     .add(/(\/authors\/remove\/)(\d+)$/, authorsController.remove)
 
