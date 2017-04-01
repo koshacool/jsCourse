@@ -449,21 +449,22 @@ class Form {
     search() {
         let form = document.getElementById('search');
         let inputs = form.elements;
-        let searchBy = inputs[2].value;//Get value for search by this
+        let searchBy = inputs[2].value;//Get value for search by
+        if (searchBy) {
+            let what = Object.keys(inputs).filter((item) => {
+                return inputs[item].checked;
+            });
 
-        let what = Object.keys(inputs).filter((item) => {
-            return inputs[item].checked;
-        });
+            let collectionName = inputs[what].value;
 
-        let collectionName = inputs[what].value;
-
-        let result = model[collectionName].search(searchBy);
-        let dataBlock = document.getElementById('searchResult');
-        dataBlock.innerHTML = '';
-        if (collectionName === 'book') {
-            dataBlock.appendChild(renderBooksIndex(result, false));
-        } else {
-            dataBlock.appendChild(renderAuthorsIndex(result, false));
+            let result = model[collectionName].search(searchBy);
+            let dataBlock = document.getElementById('searchResult');
+            dataBlock.innerHTML = '';
+            if (collectionName === 'book') {
+                dataBlock.appendChild(renderBooksIndex(result, false));
+            } else {
+                dataBlock.appendChild(renderAuthorsIndex(result, false));
+            }
         }
     }
 }
@@ -864,10 +865,11 @@ function renderSearch(data = null, renderFunctionName = null) {
         p('form', {
             className: 'form',
             id: 'search',
-            onsubmit(evt) {
+            onchange(evt) {
                 evt.preventDefault();
                 saveForm.search();
-            }}, [
+            }
+           }, [
                 p('span', {}, 'Book'),
                 p('input', {
                     type: 'radio',
@@ -889,18 +891,18 @@ function renderSearch(data = null, renderFunctionName = null) {
                     type: 'text',
                     name: 'whatSearch',
                     required: 'required',
+                    oninput(evt) {
+                        evt.preventDefault();
+                        saveForm.search();
+                    }
                 }, ''),
                 '',
-
-                p('button', {
-                    type: 'submit'
-                }, 'OK'),
         ]),
 
         p('div', {id: 'searchResult'}, ''),
-    ])
+    ]);
 
-        renderView(view)
+        renderView(view);
 };
 
 
