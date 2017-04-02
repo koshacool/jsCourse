@@ -328,7 +328,7 @@ class BooksController {
         let books = document.getElementById('books');
         let authors = model.author.findAll();
         app.appendChild(renderBooksAdd(authors, book));
-        books.style.opacity = 0.1;
+        books.style.opacity = 0.2;
     }
 
     remove(_, location) {
@@ -375,7 +375,7 @@ class AuthorsController {
         let authors = document.getElementById('authors');
         let books = model.book.findAll();
         app.appendChild(renderAuthorsAdd(books, author));
-        authors.style.opacity = 0.1;
+        authors.style.opacity = 0.2;
     }
 
     remove(_, location) {
@@ -568,9 +568,8 @@ function renderBooksAdd(authors, book = null) {
             opacity: 1,
             position: 'absolute',
             top: '20%',
-            width: '400px',
+            // width: '400px',
             left: '40%',
-
         }}, [
         p('form', {
             className: 'form',
@@ -697,20 +696,17 @@ function renderAuthorsShow(author) {
 };
 
 function renderAuthorsAdd(books, author = null) {
-
     const renderBooks = book => {
         return p('option', {id: 'book' + book.id, value: book.id}, book.title);
     }
 
-
-console.log(author)
     return p('div', {
         className: 'form',
         style: {
             opacity: 1,
             position: 'absolute',
             top: '20%',
-            width: '400px',
+            // width: '400px',
             left: '40%',
 
         }}, [
@@ -858,8 +854,8 @@ function renderSearch(data = null, renderFunctionName = null) {
             opacity: 1,
             position: 'absolute',
             top: '20%',
-            width: '400px',
-            left: '40%',
+            // width: '400px',
+            // left: '40%',
 
         }}, [
         p('form', {
@@ -927,7 +923,6 @@ model.defineModel({
         books: {ref: 'book'}
     }
 });
-
 model.defineModel({
     name: 'book',
     fields: {
@@ -939,7 +934,6 @@ model.defineModel({
         authors: {ref: 'author'}
     }
 });
-
 model.setRefData();
 
 router
@@ -953,7 +947,6 @@ router
     .add('/books/add', booksController.add)
     .add(/(\/books\/add\/)(\d+)$/, booksController.add)
     .add(/(\/books\/remove\/)(\d+)$/, booksController.remove)
-    //.add(/(\/books\/)(\/add\/)(\d+)$/, booksController.edit)
 
     .add('/authors', authorsController.index)
     .add(/(\/authors\/)(\d+)$/, authorsController.show)
