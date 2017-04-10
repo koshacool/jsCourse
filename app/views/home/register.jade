@@ -1,0 +1,23 @@
+extends ../layouts/default.jade
+
+block page-header
+
+
+block content
+
+      form(name="register", method="post" action="http://localhost:3000/register")
+          div.input
+          span Login:
+              input(type="text", name="username")
+          div.input
+              span Password:
+              input(type="password", name="password")
+
+              div.input
+                            span Repeat Password:
+                            input(type="password", name="repeatPassword")
+
+              div.input
+                 input(type="submit", value="ok")
+                 a(href="http://localhost:3000") Auth
+

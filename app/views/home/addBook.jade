@@ -1,0 +1,15 @@
+extends ../layouts/default.jade
+
+block page-header
+
+
+block content
+    form(name="auth", method="post" action="http://localhost:3000/api/add")
+              div.input
+              span Name:
+                  input(type="text", name="name")
+              div.input
+                  span Release Year:
+                  input(type="text", name="releaseYear")
+                  div.input
+                    input(type="submit", value="ok")

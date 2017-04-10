@@ -1,0 +1,14 @@
+extends ../layouts/default.jade
+
+block page-header
+
+
+block content
+      a(href="http://localhost:3000/api/add") Add new book
+      each book in books
+        div
+            span= book
+            if(user._id == book.ownerId)
+                a(href="http://localhost:3000/api/edit/" + book._id) Edit
+                &nbsp
+                a(href="http://localhost:3000/api/books/remove/" + book._id) Remove
