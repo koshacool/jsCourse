@@ -1,4 +1,3 @@
-
 /**
  * Module dependencies.
  */
@@ -12,18 +11,21 @@ var User = mongoose.model('User');
  */
 
 module.exports = new LocalStrategy({
-    usernameField: 'username',
-    passwordField: 'password'
-  },
-    function(username, password, done) {
-        User.findOne({ username: username }, function (err, user) {
-            if (err) { return done(err); }
-            if (!user) {
-                return done(null, false, { message: 'Incorrect username.' });
+        usernameField: 'username',
+        passwordField: 'password'
+    },
+    function (username, password, done) {
+        User.findOne({username: username}, function (err, user) {
+            if (err) {
+                return done(err);
             }
-            // if (!user.validPassword(password)) {
-            //     return done(null, false, { message: 'Incorrect password.' });
-            // }
+            if (!user) {
+                return done(null, false, {message: 'Incorrect username.'});
+            }
+
+            if (user.password != password) {
+                return done(null, false, {message: 'Incorrect password.'});
+            }
             return done(null, user);
         });
     }

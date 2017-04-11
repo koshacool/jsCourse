@@ -4,14 +4,15 @@ const Book = require('../models/book');
 const User = require('../models/user');
 const passport = require('passport');
 
-const handleError = (res, onSuccess) => (err, result) => {
-    if (err) {
-        winston.error(err);
-        res.status(500).send('Unknown error');
-    } else {
-        onSuccess(result);
-    }
-};
+const handleError = (res, onSuccess) =>
+    (err, result) => {
+        if (err) {
+            winston.error(err);
+            res.status(500).send('Unknown error');
+        } else {
+            onSuccess(result);
+        }
+    };
 
 module.exports = function (app) {
     app.route('/api/books')
@@ -44,28 +45,26 @@ module.exports = function (app) {
         })
 
     app.route('/api/edit/:_id')
-        .post(function (req, res, next) {
-
+        .get(function (req, res, next) {
             Book.findOne({_id: req.params._id}, handleError(res, function (result) {
-                console.log(result)
+                home.editBook(req, res, result);
+            }));
+        })
+        .post(function (req, res, next) {
+            console.log(req.params._id);
+            Book.findOne({_id: req.params._id}, handleError(res, function (result) {
                 if (req.user._id == result.ownerId) {
-                    const bookDoc = req.body;
-                    bookDoc.ownerId = req.user._id;
-                    const book = new Book(bookDoc);
-
-                    book.update(handleError(res, function (result) {
-                        return res.redirect('/api/books');
-                    }));
-                    return res.redirect('/api/books');
+                    Book.update(
+                        {_id: req.params._id},
+                        {$set: {name: req.body.name, releaseYear: req.body.releaseYear}},
+                        handleError(res, function (result) {
+                            return res.redirect('/api/books');
+                        })
+                    );
                 } else {
                     return res.status(500).send('It isn\'t your note');
                 }
 
-            }));
-        })
-        .get(function (req, res, next) {
-            Book.findOne({_id: req.params._id}, handleError(res, function (result) {
-                home.editBook(req, res, result);
             }));
         })
 
@@ -104,13 +103,13 @@ module.exports = function (app) {
                     return next(err);
                 }
                 if (!user) {
-                    return res.redirect('/auth');
+                    res.status(200).send(info);
+                    //return res.redirect('/auth');
                 }
                 req.logIn(user, function (err) {
                     if (err) {
                         return next(err);
                     }
-                    console.log(req.user)
                     return res.redirect('/api/books');
                 });
             })(req, res, next);
@@ -119,10 +118,17 @@ module.exports = function (app) {
     app.route('/register')
         .get(home.register)
         .post(function (req, res, next) {
-            const user = new User(req.body);
-            user.save(handleError(res, function (result) {
-                res.status(200).send(result);
-            }));
+            User.findOne({username: req.body.username}, function (err, user) {
+                if (user) {
+                    res.status(200).send('This name is already busy!');
+                } else {
+                    const user = new User(req.body);
+                    user.save(handleError(res, function (result) {
+                        return res.redirect('/');
+                    }));
+                }
+            });
+
         });
 
     app.get('/logout', function (req, res) {
