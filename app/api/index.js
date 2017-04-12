@@ -118,17 +118,17 @@ module.exports = function (app) {
     app.route('/register')
         .get(home.register)
         .post(function (req, res, next) {
-            User.findOne({username: req.body.username}, function (err, user) {
+            User.findOne({username: req.body.username}, handleError(res, function (user) {
                 if (user) {
-                    res.status(200).send('This name is already busy!');
-                } else {
-                    const user = new User(req.body);
-                    user.save(handleError(res, function (result) {
-                        return res.redirect('/');
-                    }));
+                    return res.status(200).send('This name is already busy!');
                 }
-            });
-
+                next();
+            }));
+        }, function (req, res) {
+            const user = new User(req.body);
+            user.save(handleError(res, function (result) {
+                return res.redirect('/');
+            }));
         });
 
     app.get('/logout', function (req, res) {
