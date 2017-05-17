@@ -1,10 +1,9 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { Redirect } from 'react-router';
-import { BrowserRouter, Route, Link, Switch } from 'react-router-dom';
+import { books, authors } from '../actions'
 
-import Book from './Book.jsx';
-import Author from './Author.jsx';
+import Book from './Book.js';
+import Author from './Author.js';
 
 class Poets extends React.Component {
 	renderBooks() {
@@ -41,10 +40,10 @@ const mapStateToProps = (state, props) => {
 const mapDispatchToProps = (dispatch) => {
   return {
     showBooks() {
-      dispatch({ type: 'showBooks' })
+      dispatch(books())
     },
     showAuthors() {
-      dispatch({ type: 'showAuthors' })
+      dispatch(authors())
     }
   }
 }

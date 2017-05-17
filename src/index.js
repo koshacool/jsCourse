@@ -1,12 +1,11 @@
 import React from 'react';
 import { render } from 'react-dom';
-import { Provider, connect } from 'react-redux';
+import { Provider } from 'react-redux';
 import { createStore } from 'redux';
-import counter from './reducers';
-import App from './components/App.jsx';
+import rootReducers from './reducers';
+import App from './components/App.js';
 
-
-const store = createStore(counter);
+const store = createStore(rootReducers);
 
 const rendering = () => {
 	render ( 
@@ -20,8 +19,8 @@ const rendering = () => {
 rendering();
 
 if (module && module.hot) {
-  module.hot.accept('./components/App.jsx', () => {
-    const App = require('./components/App.jsx').default;
+  module.hot.accept('./components/App.js', () => {
+    const App = require('./components/App.js').default;
     rendering();
   });
 }
