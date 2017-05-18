@@ -6,6 +6,7 @@ import {createContainer} from 'meteor/react-meteor-data';
 import Header from './components/Header.js';
 import Home from './components/Home.js';
 import About from './components/About.js';
+import NotFound from './components/NotFound.js';
 
 class App extends Component {
     constructor(props) {
@@ -30,7 +31,8 @@ class App extends Component {
     }
  
 
-    render() {  
+    render() {
+        console.log(this.props.history)
         return (
             <BrowserRouter>
                 <div>
@@ -43,6 +45,7 @@ class App extends Component {
                                     <Redirect exact from="/" to="/home" />
                                     <Route path="/home" component={Home} />
                                     <Route path="/about" component={About} />
+                                    <Route component={NotFound} />
                                 </Switch>
                             </div> 
                         </div> 

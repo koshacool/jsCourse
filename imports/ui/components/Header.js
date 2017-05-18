@@ -11,8 +11,7 @@ Accounts.ui.config({
 
 export default class Header extends Component { 
 
-    render() {
-
+    render() {        
     	const {logged} = this.props;
         return (
         	<div className="headerBock">
