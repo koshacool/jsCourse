@@ -1,1 +1,36 @@
-/* CSS declarations go here */
+body {
+  background: #ece7e7;
+}
+
+.header {	
+	width: 600px;
+	margin: auto;
+	padding: 15px;
+	margin-bottom: 20px;
+}
+
+.contentBLock {
+	border-top: 1px solid black;
+}
+
+.content {
+	max-width: 400px;
+	margin: auto;
+	margin-top: 30px;
+	
+}
+
+a {
+	margin-left: 10px;
+}
+
+.accounts {
+	margin: auto;
+	width: 200px;
+	display: inline-block;
+}
+
+.linkBLock {	
+	margin: auto;
+	display: inline-block;
+}
