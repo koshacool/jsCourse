@@ -1,43 +1,66 @@
-import React, {Component} from 'react';
+import React, {Component, PropTypes} from 'react';
 import {Meteor} from 'meteor/meteor';
-import { Accounts } from 'meteor/std:accounts-ui';
+import {BrowserRouter, Route, Link, Switch, Redirect} from 'react-router-dom';
+import {createContainer} from 'meteor/react-meteor-data';
 
-Accounts.ui.config({
-  //  requestPermissions: {
-  //   facebook: ['user_likes'],
-  //   github: ['user', 'repo']
-  // },
-  // requestOfflineToken: {
-  //   google: true
-  // },
-  passwordSignupFields: 'EMAIL_ONLY',
-  // loginPath: '/',
-  // signUpPath: '/signup',
-  // resetPasswordPath: '/reset-password',
-  // profilePath: '/profile',
-  // onSignedInHook: () => FlowRouter.go('/general'),
-  // onSignedOutHook: () => FlowRouter.go('/login'),
-  // passwordSignupFields: 'NO_PASSWORD',
-  // loginPath: '/',
-  minimumPasswordLength: 6
-});
+import Header from './components/Header.js';
+import Home from './components/Home.js';
+import About from './components/About.js';
 
-export default class App extends Component {
+class App extends Component {
     constructor(props) {
-        super(props);
-       
+        super(props);          
+        this.state = {
+            logged: this.checkStateLogged(this.props.currentUser)
+        };
+    
     }
 
-      // <Accounts.ui.LoginForm />
+    checkStateLogged(props) {
+        if (props) {
+            return true;
+        }
+        return false;
+    }
+    
+    componentWillReceiveProps(nextProps) {
+        this.setState({
+            logged: this.checkStateLogged(nextProps.currentUser)
+        })
+    }
+ 
 
-    render() {
-      
+    render() {  
         return (
-            <div className="container">  
-                <Accounts.ui.LoginForm />
-                
-               
-            </div>
+            <BrowserRouter>
+                <div>
+                    <Header logged={this.state.logged} />
+
+                    { this.state.logged ? 
+                       <div className="contentBLock">
+                            <div className="content">
+                                <Switch>
+                                    <Redirect exact from="/" to="/home" />
+                                    <Route path="/home" component={Home} />
+                                    <Route path="/about" component={About} />
+                                </Switch>
+                            </div> 
+                        </div> 
+                        : ''
+                    }
+                    
+                </div>
+            </BrowserRouter>
         )
     }
 };
+
+App.propTypes = {    
+    currentUser: PropTypes.object,
+};
+
+export default createContainer(() => {   
+    return {        
+        currentUser: Meteor.user(),
+    };
+}, App);
